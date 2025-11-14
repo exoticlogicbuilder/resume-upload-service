@@ -5,13 +5,25 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Resume Upload Test</title>
-  <style>body{font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial; padding:18px; max-width:700px;} label,input,button{display:block;margin:8px 0;} #status{margin-top:12px}</style>
+  <style>
+    body { font-family: system-ui, Segoe UI, Roboto, Helvetica, Arial; padding: 18px; max-width: 720px; }
+    label, input, button { display: block; margin: 8px 0; }
+    input[type="text"] { padding: 8px; width: 100%; max-width: 360px; }
+    input[type="file"] { padding: 6px 0; }
+    button { padding: 10px 14px; cursor: pointer; }
+    #status { margin-top: 12px; }
+  </style>
 </head>
 <body>
   <h2>Resume Upload Test</h2>
-  <p>Choose a PDF (max 2MB)</p>
-  <input id="file" type="file" accept="application/pdf" />
-  <input id="userId" placeholder="userId (optional)" />
+  <p>Select a PDF resume (maximum 2MB) and provide your user ID.</p>
+
+  <label for="file">Resume (PDF only)</label>
+  <input id="file" type="file" accept="application/pdf,.pdf" />
+
+  <label for="userId">User ID (UUID)</label>
+  <input id="userId" type="text" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
+
   <button id="upload">Upload</button>
   <div id="status"></div>
 
@@ -22,28 +34,56 @@
     const userIdInput = document.getElementById('userId');
 
     const MAX_SIZE = 2 * 1024 * 1024; // 2MB
+    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
     uploadBtn.addEventListener('click', async () => {
       status.textContent = '';
-      const f = fileInput.files[0];
-      if (!f) return status.textContent = 'Please choose a file.';
-      if (f.type !== 'application/pdf') return status.textContent = 'Only PDF files allowed.';
-      if (f.size > MAX_SIZE) return status.textContent = 'File is too large (max 2MB).';
 
-      const fd = new FormData();
-      fd.append('file', f);
-      const uid = userIdInput.value.trim();
-      if (uid) fd.append('userId', uid);
+      const file = fileInput.files[0];
+      if (!file) {
+        status.textContent = 'Please choose a PDF file to upload.';
+        return;
+      }
+
+      if (file.type !== 'application/pdf') {
+        status.textContent = 'Only PDF files are allowed.';
+        return;
+      }
+
+      if (file.size > MAX_SIZE) {
+        status.textContent = 'File is too large (max 2MB).';
+        return;
+      }
+
+      const userId = userIdInput.value.trim();
+      if (!userId) {
+        status.textContent = 'Please provide your userId (UUID).';
+        return;
+      }
+
+      if (!uuidPattern.test(userId)) {
+        status.textContent = 'userId must be a valid UUID.';
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('userId', userId);
 
       status.textContent = 'Uploading...';
 
       try {
-        const resp = await fetch('/api/resumes', { method: 'POST', body: fd });
-        const json = await resp.json();
-        if (!resp.ok) throw new Error(json.message || 'Upload failed');
-        status.innerHTML = `✅ Upload successful — <strong>${json.filename}</strong> <br> <a href="${json.url}" target="_blank">Open file</a>`;
+        const response = await fetch('/api/resumes', { method: 'POST', body: formData });
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.message || 'Upload failed');
+        }
+
+        status.innerHTML = `✅ Upload successful — <strong>${result.filename}</strong><br>` +
+          `<a href="${result.fileUrl}" target="_blank" rel="noopener noreferrer">View uploaded resume</a>`;
       } catch (err) {
-        status.textContent = 'Error: ' + (err.message || err);
+        status.textContent = `Error: ${err.message || err}`;
       }
     });
   </script>
