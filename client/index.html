@@ -11,7 +11,7 @@
   <h2>Resume Upload Test</h2>
   <p>Choose a PDF (max 2MB)</p>
   <input id="file" type="file" accept="application/pdf" />
-  <input id="userId" placeholder="userId (optional)" />
+  <input id="userId" placeholder="userId (UUID)" required />
   <button id="upload">Upload</button>
   <div id="status"></div>
 
@@ -33,7 +33,18 @@
       const fd = new FormData();
       fd.append('file', f);
       const uid = userIdInput.value.trim();
-      if (uid) fd.append('userId', uid);
+      if (!uid) {
+        status.textContent = 'Please provide a userId.';
+        return;
+      }
+
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(uid)) {
+        status.textContent = 'Please enter a valid UUID for userId.';
+        return;
+      }
+
+      fd.append('userId', uid);
 
       status.textContent = 'Uploading...';
 
