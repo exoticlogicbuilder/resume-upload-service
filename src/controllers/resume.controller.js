@@ -3,6 +3,8 @@ const multer = require('multer');
 const { Pool } = require('pg');
 const { uploadBuffer } = require('../services/storage.s3');
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
 function generateFilename(userId) {
@@ -21,21 +23,30 @@ async function uploadResume(req, res) {
     const maxSize = parseInt(process.env.MAX_FILE_SIZE || String(2 * 1024 * 1024), 10);
     if (file.size > maxSize) return res.status(413).json({ success: false, message: 'File too large' });
 
-    const userId = req.body.userId || (req.user && req.user.id) || 'anonymous';
+    const providedUserId = req.body.userId ?? (req.user && req.user.id);
+    const userId = typeof providedUserId === 'string' ? providedUserId.trim() : providedUserId ? String(providedUserId) : '';
+    if (!userId) {
+      return res.status(400).json({ success: false, message: 'Missing userId' });
+    }
+
+    if (!UUID_REGEX.test(userId)) {
+      return res.status(400).json({ success: false, message: 'Invalid userId' });
+    }
+
     const filename = generateFilename(userId);
     const key = `resumes/${userId}/${filename}`;
 
     // Upload to S3
-    const url = await uploadBuffer({ buffer: file.buffer, key, contentType: file.mimetype });
+    const fileUrl = await uploadBuffer({ buffer: file.buffer, key, contentType: file.mimetype });
 
     // Store metadata in DB
-    const insert = `INSERT INTO resumes(user_id, filename, url, size, mime) VALUES($1,$2,$3,$4,$5) RETURNING id, uploaded_at`;
-    const values = [userId, filename, url, file.size, file.mimetype];
+    const insert = `INSERT INTO resumes(user_id, filename, file_url, file_size, file_type) VALUES($1,$2,$3,$4,$5) RETURNING id, upload_date, status`;
+    const values = [userId, filename, fileUrl, file.size, file.mimetype];
     const result = await pool.query(insert, values);
 
-    const uploaded_at = result.rows[0].uploaded_at;
+    const { id, upload_date, status } = result.rows[0];
 
-    return res.json({ success: true, filename, url, message: 'Upload successful', uploaded_at });
+    return res.json({ success: true, id, filename, url: fileUrl, status, message: 'Upload successful', upload_date });
   } catch (err) {
     // Multer errors
     if (err instanceof multer.MulterError) {

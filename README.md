@@ -17,5 +17,6 @@ Simple microservice to accept PDF resume uploads (max 2MB), upload to S3, and st
 5. Open `client/index.html` in a browser (or serve it) and test uploading a PDF to `http://localhost:3000/api/resumes`.
 
 ## Notes
+- The `/api/resumes` endpoint expects multipart form fields: `file` (PDF, max 2MB) and `userId` (UUID for an existing user).
 - Uses `multer.memoryStorage()` and streams buffer to S3.
 - Files are uploaded with `public-read` ACL by default. Change in `src/services/storage.s3.js` if you need private storage.
