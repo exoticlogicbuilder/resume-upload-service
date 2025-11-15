@@ -1,14 +1,15 @@
 {
   "name": "resume-upload-service",
   "version": "1.0.0",
-  "description": "Microservice to upload PDF resumes to S3 and store metadata in Postgres",
+  "description": "Microservice to upload PDF resumes to DigitalOcean Spaces/S3 and store metadata in Postgres",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^4.0.0",
+    "@aws-sdk/client-s3": "^3.0.0",
+    "cors": "^2.8.5",
     "dotenv": "^16.0.0",
     "express": "^4.18.2",
     "multer": "^1.4.5-lts.1",

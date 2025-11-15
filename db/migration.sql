@@ -2,8 +2,8 @@ CREATE TABLE IF NOT EXISTS resumes (
   id SERIAL PRIMARY KEY,
   user_id VARCHAR(255) NOT NULL,
   filename VARCHAR(512) NOT NULL,
-  file_url TEXT NOT NULL,
-  file_size INTEGER NOT NULL,
+  url TEXT NOT NULL,
+  size INTEGER NOT NULL,
   mime VARCHAR(100) NOT NULL,
   uploaded_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );

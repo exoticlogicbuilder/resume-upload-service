@@ -40,13 +40,28 @@ async function uploadResume(req, res) {
     // Multer errors
     if (err instanceof multer.MulterError) {
       if (err.code === 'LIMIT_FILE_SIZE') {
-        return res.status(413).json({ success: false, message: 'File too large' });
+        return res.status(413).json({ success: false, message: 'File too large. Maximum size is 2MB.' });
+      }
+      if (err.code === 'LIMIT_UNEXPECTED_FILE' || err.message.includes('Only PDF files are allowed')) {
+        return res.status(400).json({ success: false, message: 'Only PDF files are allowed.' });
       }
       return res.status(400).json({ success: false, message: err.message });
     }
 
+    // Database errors
+    if (err.code && err.code.startsWith('23')) { // PostgreSQL constraint violations
+      console.error('Database constraint error:', err);
+      return res.status(400).json({ success: false, message: 'Invalid data provided.' });
+    }
+
+    // Network/storage errors
+    if (err.name === 'NoSuchBucket' || err.name === 'AccessDenied') {
+      console.error('Storage configuration error:', err);
+      return res.status(500).json({ success: false, message: 'Storage service is not properly configured.' });
+    }
+
     console.error('Upload error:', err);
-    return res.status(500).json({ success: false, message: 'Upload failed', error: err.message });
+    return res.status(500).json({ success: false, message: 'Upload failed. Please try again.', error: err.message });
   }
 }
 
