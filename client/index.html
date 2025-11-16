@@ -25,10 +25,23 @@
 
     uploadBtn.addEventListener('click', async () => {
       status.textContent = '';
+      status.style.color = '';
       const f = fileInput.files[0];
-      if (!f) return status.textContent = 'Please choose a file.';
-      if (f.type !== 'application/pdf') return status.textContent = 'Only PDF files allowed.';
-      if (f.size > MAX_SIZE) return status.textContent = 'File is too large (max 2MB).';
+      if (!f) {
+        status.textContent = 'Please choose a file.';
+        status.style.color = '#d32f2f';
+        return;
+      }
+      if (f.type !== 'application/pdf') {
+        status.textContent = 'Only PDF files are allowed.';
+        status.style.color = '#d32f2f';
+        return;
+      }
+      if (f.size > MAX_SIZE) {
+        status.textContent = 'File is too large. Maximum size is 2MB.';
+        status.style.color = '#d32f2f';
+        return;
+      }
 
       const fd = new FormData();
       fd.append('file', f);
@@ -40,10 +53,17 @@
       try {
         const resp = await fetch('/api/resumes', { method: 'POST', body: fd });
         const json = await resp.json();
-        if (!resp.ok) throw new Error(json.message || 'Upload failed');
-        status.innerHTML = `✅ Upload successful — <strong>${json.filename}</strong> <br> <a href="${json.url}" target="_blank">Open file</a>`;
+        
+        if (!resp.ok) {
+          throw new Error(json.message || 'Upload failed');
+        }
+        
+        status.innerHTML = `✅ Upload successful — <strong>${json.filename}</strong><br>
+                           <small>Uploaded: ${new Date(json.uploaded_at).toLocaleString()}</small><br>
+                           <a href="${json.url}" target="_blank">📄 Open file</a>`;
       } catch (err) {
-        status.textContent = 'Error: ' + (err.message || err);
+        status.innerHTML = `❌ Error: ${err.message || err}`;
+        status.style.color = '#d32f2f';
       }
     });
   </script>
