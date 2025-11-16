@@ -1,76 +1,482 @@
-<!-- client/index.html -->
 <!doctype html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Resume Upload Test</title>
-  <style>body{font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial; padding:18px; max-width:700px;} label,input,button{display:block;margin:8px 0;} #status{margin-top:12px}</style>
+  <title>Resume Dashboard</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      --max-width: 760px;
+      --border-color: rgba(0, 0, 0, 0.12);
+      --bg-muted: rgba(0, 0, 0, 0.04);
+      --success: #2e7d32;
+      --error: #c62828;
+      --info: #1565c0;
+    }
+
+    body {
+      margin: 0;
+      padding: 32px 20px 48px;
+      display: flex;
+      justify-content: center;
+      background: #f7f9fb;
+    }
+
+    .app-container {
+      width: 100%;
+      max-width: var(--max-width);
+      background: #ffffff;
+      border-radius: 16px;
+      box-shadow: 0 16px 32px rgba(15, 23, 42, 0.12);
+      padding: 28px 32px 40px;
+    }
+
+    h1 {
+      font-weight: 600;
+      margin-top: 0;
+      margin-bottom: 24px;
+      font-size: 1.8rem;
+      letter-spacing: -0.01em;
+    }
+
+    section + section {
+      margin-top: 32px;
+      padding-top: 28px;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 16px;
+    }
+
+    label {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    input[type="text"],
+    input[type="file"] {
+      font: inherit;
+      padding: 10px 12px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      background: #fafafa;
+    }
+
+    button {
+      font: inherit;
+      padding: 10px 18px;
+      border-radius: 999px;
+      border: none;
+      cursor: pointer;
+      background: #1565c0;
+      color: #fff;
+      font-weight: 600;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+    }
+
+    button:not(:disabled):hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 14px rgba(21, 101, 192, 0.32);
+    }
+
+    .status {
+      padding: 12px 16px;
+      border-radius: 10px;
+      margin-bottom: 16px;
+      font-size: 0.95rem;
+    }
+
+    .status.success {
+      background: rgba(46, 125, 50, 0.12);
+      color: var(--success);
+    }
+
+    .status.error {
+      background: rgba(198, 40, 40, 0.12);
+      color: var(--error);
+    }
+
+    .status.info {
+      background: rgba(21, 101, 192, 0.12);
+      color: var(--info);
+    }
+
+    .resume-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+      font-size: 0.95rem;
+    }
+
+    .resume-table thead {
+      background: var(--bg-muted);
+    }
+
+    .resume-table th,
+    .resume-table td {
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .resume-table tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    .placeholder {
+      padding: 16px;
+      background: var(--bg-muted);
+      border-radius: 12px;
+      margin-top: 12px;
+      color: rgba(0, 0, 0, 0.6);
+    }
+
+    .resume-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    @media (max-width: 640px) {
+      body {
+        padding: 20px 14px 32px;
+      }
+
+      .app-container {
+        padding: 24px;
+      }
+
+      .resume-table {
+        font-size: 0.88rem;
+      }
+
+      .resume-table thead {
+        display: none;
+      }
+
+      .resume-table tr {
+        display: block;
+        margin-bottom: 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+
+      .resume-table td {
+        display: flex;
+        justify-content: space-between;
+        padding: 10px 12px;
+      }
+
+      .resume-table td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        margin-right: 16px;
+      }
+    }
+  </style>
 </head>
 <body>
-  <h2>Resume Upload Test</h2>
-  <p>Choose a PDF (max 2MB)</p>
-  <input id="file" type="file" accept="application/pdf" />
-  <input id="userId" placeholder="userId (optional)" />
-  <button id="upload">Upload</button>
-  <div id="status"></div>
+  <div id="root"></div>
 
-  <script>
-    const fileInput = document.getElementById('file');
-    const uploadBtn = document.getElementById('upload');
-    const status = document.getElementById('status');
-    const userIdInput = document.getElementById('userId');
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/babel-standalone@7/babel.min.js"></script>
 
-    const MAX_SIZE = 2 * 1024 * 1024; // 2MB
+  <script type="text/babel">
+    const { useState, useEffect, useMemo, useRef } = React;
 
-    uploadBtn.addEventListener('click', async () => {
-      status.textContent = '';
-      status.style.color = '';
-      const f = fileInput.files[0];
-      if (!f) {
-        status.textContent = 'Please choose a file.';
-        status.style.color = '#d32f2f';
-        return;
+    const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
+
+    const initialStatus = { type: '', message: '' };
+
+    function formatFileSize(bytes) {
+      if (!Number.isFinite(bytes)) return '—';
+      if (bytes >= 1024 * 1024) {
+        return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
       }
-      if (f.type !== 'application/pdf') {
-        status.textContent = 'Only PDF files are allowed.';
-        status.style.color = '#d32f2f';
-        return;
+      if (bytes >= 1024) {
+        return `${Math.round(bytes / 1024)} KB`;
       }
-      if (f.size > MAX_SIZE) {
-        status.textContent = 'File is too large. Maximum size is 2MB.';
-        status.style.color = '#d32f2f';
-        return;
-      }
+      return `${bytes} B`;
+    }
 
-      const fd = new FormData();
-      fd.append('file', f);
-      const uid = userIdInput.value.trim();
-      if (uid) fd.append('userId', uid);
+    function formatDate(value) {
+      if (!value) return '—';
+      const date = value instanceof Date ? value : new Date(value);
+      if (Number.isNaN(date.getTime())) return '—';
+      return date.toLocaleString();
+    }
 
-      status.textContent = 'Uploading...';
+    function StatusBanner({ status }) {
+      if (!status?.message) return null;
+      return <div className={`status ${status.type || 'info'}`}>{status.message}</div>;
+    }
 
-      try {
-        const resp = await fetch('/api/resumes', { method: 'POST', body: fd });
-        const json = await resp.json();
-        
-        if (!resp.ok) {
-          throw new Error(json.message || 'Upload failed');
+    function ResumeList({ userId, refreshToken }) {
+      const [resumes, setResumes] = useState([]);
+      const [loading, setLoading] = useState(false);
+      const [error, setError] = useState('');
+      const [downloadingId, setDownloadingId] = useState(null);
+
+      useEffect(() => {
+        let cancelled = false;
+
+        async function fetchResumes() {
+          if (!userId) {
+            setResumes([]);
+            setError('');
+            return;
+          }
+
+          setLoading(true);
+          setError('');
+
+          try {
+            const params = new URLSearchParams({ userId });
+            const response = await fetch(`/api/resumes?${params.toString()}`, {
+              headers: {
+                'Accept': 'application/json',
+                'X-User-Id': userId,
+              },
+            });
+
+            const json = await response.json();
+            if (!response.ok) {
+              throw new Error(json.message || 'Failed to fetch resumes');
+            }
+
+            if (!cancelled) {
+              setResumes(Array.isArray(json.data) ? json.data : []);
+            }
+          } catch (err) {
+            if (!cancelled) {
+              setError(err.message || 'Failed to fetch resumes');
+              setResumes([]);
+            }
+          } finally {
+            if (!cancelled) {
+              setLoading(false);
+            }
+          }
         }
-        
-        const record = json.data || {};
-        const filename = record.filename || json.filename;
-        const uploadedAt = record.upload_date || json.uploaded_at;
-        const fileLink = record.file_url || json.fileUrl || json.url;
 
-        status.innerHTML = `✅ Upload successful — <strong>${filename || 'resume'}</strong><br>
-                           <small>Uploaded: ${uploadedAt ? new Date(uploadedAt).toLocaleString() : 'Unknown'}</small><br>
-                           ${fileLink ? `<a href="${fileLink}" target="_blank">📄 Open file</a>` : ''}`;
-      } catch (err) {
-        status.innerHTML = `❌ Error: ${err.message || err}`;
-        status.style.color = '#d32f2f';
+        fetchResumes();
+
+        return () => {
+          cancelled = true;
+        };
+      }, [userId, refreshToken]);
+
+      const handleDownload = async (resumeId) => {
+        if (!resumeId || !userId) return;
+        setDownloadingId(resumeId);
+        try {
+          const response = await fetch(`/api/resumes/${resumeId}`, {
+            headers: {
+              'Accept': 'application/json',
+              'X-User-Id': userId,
+            },
+          });
+
+          const json = await response.json();
+          if (!response.ok) {
+            throw new Error(json.message || 'Unable to generate download link');
+          }
+
+          const downloadUrl = json?.data?.downloadUrl;
+          if (!downloadUrl) {
+            throw new Error('Download URL not available');
+          }
+
+          window.open(downloadUrl, '_blank', 'noopener,noreferrer');
+        } catch (err) {
+          setError(err.message || 'Failed to download resume');
+        } finally {
+          setDownloadingId(null);
+        }
+      };
+
+      if (!userId) {
+        return <div className="placeholder">Enter a user ID to view uploaded resumes.</div>;
       }
-    });
+
+      return (
+        <div>
+          {error && <div className="status error" role="alert">{error}</div>}
+          {loading ? (
+            <div className="placeholder">Loading resumes…</div>
+          ) : resumes.length === 0 ? (
+            <div className="placeholder">No resumes uploaded yet.</div>
+          ) : (
+            <div className="resume-list">
+              <table className="resume-table">
+                <thead>
+                  <tr>
+                    <th>Filename</th>
+                    <th>Uploaded</th>
+                    <th>Size</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {resumes.map((resume) => (
+                    <tr key={resume.id}>
+                      <td data-label="Filename">{resume.filename || 'Unnamed resume'}</td>
+                      <td data-label="Uploaded">{formatDate(resume.uploadDate || resume.upload_date)}</td>
+                      <td data-label="Size">{formatFileSize(resume.fileSize ?? resume.file_size)}</td>
+                      <td data-label="Status">{resume.status || 'uploaded'}</td>
+                      <td data-label="Actions">
+                        <div className="resume-actions">
+                          <button
+                            type="button"
+                            onClick={() => handleDownload(resume.id)}
+                            disabled={downloadingId === resume.id}
+                          >
+                            {downloadingId === resume.id ? 'Preparing…' : 'Download'}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    function App() {
+      const [userIdInput, setUserIdInput] = useState('');
+      const [selectedFile, setSelectedFile] = useState(null);
+      const [status, setStatus] = useState(initialStatus);
+      const [isUploading, setIsUploading] = useState(false);
+      const [refreshToken, setRefreshToken] = useState(0);
+      const fileInputRef = useRef(null);
+
+      const userId = useMemo(() => userIdInput.trim(), [userIdInput]);
+
+      const handleUpload = async () => {
+        setStatus(initialStatus);
+
+        if (!selectedFile) {
+          setStatus({ type: 'error', message: 'Please select a PDF resume to upload.' });
+          return;
+        }
+
+        if (!userId) {
+          setStatus({ type: 'error', message: 'User ID is required to upload a resume.' });
+          return;
+        }
+
+        if (selectedFile.type !== 'application/pdf') {
+          setStatus({ type: 'error', message: 'Only PDF files are allowed.' });
+          return;
+        }
+
+        if (selectedFile.size > MAX_FILE_SIZE) {
+          setStatus({ type: 'error', message: 'File is too large. Maximum size is 2MB.' });
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+        formData.append('userId', userId);
+
+        setIsUploading(true);
+        setStatus({ type: 'info', message: 'Uploading resume…' });
+
+        try {
+          const response = await fetch('/api/resumes', {
+            method: 'POST',
+            body: formData,
+          });
+
+          const json = await response.json();
+          if (!response.ok) {
+            throw new Error(json.message || 'Upload failed');
+          }
+
+          setStatus({
+            type: 'success',
+            message: `Upload successful — ${json?.data?.filename || selectedFile.name}`,
+          });
+          setSelectedFile(null);
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+          }
+          setRefreshToken((token) => token + 1);
+        } catch (err) {
+          setStatus({ type: 'error', message: err.message || 'Upload failed' });
+        } finally {
+          setIsUploading(false);
+        }
+      };
+
+      return (
+        <div className="app-container">
+          <h1>Resume Dashboard</h1>
+
+          <section>
+            <div className="field">
+              <label htmlFor="userId">User ID</label>
+              <input
+                id="userId"
+                type="text"
+                placeholder="Enter your user UUID"
+                value={userIdInput}
+                onChange={(event) => setUserIdInput(event.target.value)}
+              />
+            </div>
+
+            <div className="field">
+              <label htmlFor="resumeFile">Resume (PDF, max 2MB)</label>
+              <input
+                ref={fileInputRef}
+                id="resumeFile"
+                type="file"
+                accept="application/pdf"
+                onChange={(event) => {
+                  const file = event.target.files?.[0] ?? null;
+                  setSelectedFile(file);
+                }}
+              />
+            </div>
+
+            <button type="button" onClick={handleUpload} disabled={isUploading}>
+              {isUploading ? 'Uploading…' : 'Upload Resume'}
+            </button>
+
+            <StatusBanner status={status} />
+          </section>
+
+          <section>
+            <h2 style={{ marginTop: 0, fontSize: '1.4rem' }}>Uploaded Resumes</h2>
+            <ResumeList userId={userId} refreshToken={refreshToken} />
+          </section>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
   </script>
 </body>
 </html>

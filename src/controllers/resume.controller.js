@@ -1,6 +1,10 @@
 // src/controllers/resume.controller.js
 const multer = require('multer');
-const { uploadBuffer } = require('../services/storage.digitalocean');
+const {
+  uploadBuffer,
+  getSignedDownloadUrl,
+  extractObjectKey,
+} = require('../services/storage.digitalocean');
 const { resumeModel } = require('../models/resume.model');
 
 function generateFilename(userId) {
@@ -12,6 +16,66 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-
 
 function isValidUUID(value) {
   return UUID_REGEX.test(value);
+}
+
+function resolveUserId(req, { includeBody = false } = {}) {
+  if (!req) return '';
+
+  const candidateSources = [
+    req.user && req.user.id,
+    req.headers && (req.headers['x-user-id'] ?? req.headers['x-userid']),
+    req.query && (req.query.userId ?? req.query.user_id),
+  ];
+
+  if (includeBody && req.body) {
+    candidateSources.push(req.body.userId, req.body.user_id);
+  }
+
+  for (const candidate of candidateSources) {
+    if (candidate === undefined || candidate === null) continue;
+    const normalized = typeof candidate === 'string' ? candidate.trim() : String(candidate);
+    if (normalized) {
+      return normalized;
+    }
+  }
+
+  return '';
+}
+
+async function buildResumeResponse(record) {
+  if (!record) {
+    return null;
+  }
+
+  const fileUrl = record.file_url ?? record.fileUrl ?? null;
+  const objectKey = extractObjectKey(fileUrl);
+
+  let downloadUrl = null;
+  if (objectKey) {
+    downloadUrl = await getSignedDownloadUrl({ key: objectKey, expiresIn: 3600 });
+  }
+
+  const response = {
+    id: record.id,
+    userId: record.user_id ?? record.userId ?? null,
+    filename: record.filename,
+    fileSize: record.file_size ?? record.fileSize ?? null,
+    fileType: record.file_type ?? record.fileType ?? null,
+    uploadDate: record.upload_date ?? record.uploadDate ?? null,
+    status: record.status ?? null,
+    downloadUrl,
+    fileUrl,
+    createdAt: record.created_at ?? record.createdAt ?? null,
+    updatedAt: record.updated_at ?? record.updatedAt ?? null,
+  };
+
+  // Include legacy snake_case keys for backwards compatibility
+  response.file_url = record.file_url ?? record.fileUrl ?? null;
+  response.upload_date = record.upload_date ?? record.uploadDate ?? null;
+  response.created_at = record.created_at ?? record.createdAt ?? null;
+  response.updated_at = record.updated_at ?? record.updatedAt ?? null;
+
+  return response;
 }
 
 async function uploadResume(req, res) {
@@ -29,10 +93,7 @@ async function uploadResume(req, res) {
       return res.status(413).json({ success: false, message: 'File too large' });
     }
 
-    const rawUserId = req.body.userId ?? (req.user && req.user.id);
-    const userId = typeof rawUserId === 'string'
-      ? rawUserId.trim()
-      : rawUserId ? String(rawUserId) : '';
+    const userId = resolveUserId(req, { includeBody: true });
 
     if (!userId) {
       return res.status(400).json({ success: false, message: 'User ID is required' });
@@ -42,7 +103,7 @@ async function uploadResume(req, res) {
       return res.status(400).json({ success: false, message: 'Invalid User ID format' });
     }
 
-    const status = req.body.status || 'uploaded';
+    const status = req.body?.status || 'uploaded';
     const filename = generateFilename(userId);
     const key = `resumes/${userId}/${filename}`;
 
@@ -61,17 +122,20 @@ async function uploadResume(req, res) {
       uploadDate,
     });
 
+    const payload = await buildResumeResponse(resumeRecord);
+
     return res.status(201).json({
       success: true,
       message: 'Upload successful',
-      data: resumeRecord,
-      id: resumeRecord.id,
-      userId: resumeRecord.user_id,
-      filename: resumeRecord.filename,
-      fileUrl: resumeRecord.file_url,
-      url: resumeRecord.file_url,
-      uploaded_at: resumeRecord.upload_date,
-      status: resumeRecord.status,
+      data: payload,
+      id: payload?.id ?? resumeRecord.id,
+      userId: payload?.userId ?? resumeRecord.user_id,
+      filename: payload?.filename ?? resumeRecord.filename,
+      fileUrl: payload?.fileUrl ?? resumeRecord.file_url,
+      url: payload?.fileUrl ?? resumeRecord.file_url,
+      uploaded_at: payload?.uploadDate ?? resumeRecord.upload_date,
+      status: payload?.status ?? resumeRecord.status,
+      downloadUrl: payload?.downloadUrl ?? null,
     });
   } catch (err) {
     // Multer errors
@@ -106,4 +170,59 @@ async function uploadResume(req, res) {
   }
 }
 
-module.exports = { uploadResume };
+async function listResumes(req, res) {
+  try {
+    const userId = resolveUserId(req);
+
+    if (!userId) {
+      return res.status(400).json({ success: false, message: 'User ID is required' });
+    }
+
+    if (!isValidUUID(userId)) {
+      return res.status(400).json({ success: false, message: 'Invalid User ID format' });
+    }
+
+    const resumeRows = await resumeModel.findByUserId(userId);
+    const data = await Promise.all(resumeRows.map((row) => buildResumeResponse(row)));
+
+    return res.json({ success: true, data });
+  } catch (err) {
+    console.error('List resumes error:', err);
+    return res.status(500).json({ success: false, message: 'Failed to fetch resumes', error: err.message });
+  }
+}
+
+async function getResume(req, res) {
+  try {
+    const userId = resolveUserId(req);
+
+    if (!userId) {
+      return res.status(400).json({ success: false, message: 'User ID is required' });
+    }
+
+    if (!isValidUUID(userId)) {
+      return res.status(400).json({ success: false, message: 'Invalid User ID format' });
+    }
+
+    const resumeId = req.params?.id;
+
+    if (!resumeId || !isValidUUID(resumeId)) {
+      return res.status(400).json({ success: false, message: 'Invalid resume ID' });
+    }
+
+    const resumeRow = await resumeModel.findById(resumeId);
+
+    if (!resumeRow || resumeRow.user_id !== userId) {
+      return res.status(404).json({ success: false, message: 'Resume not found' });
+    }
+
+    const data = await buildResumeResponse(resumeRow);
+
+    return res.json({ success: true, data });
+  } catch (err) {
+    console.error('Get resume error:', err);
+    return res.status(500).json({ success: false, message: 'Failed to retrieve resume', error: err.message });
+  }
+}
+
+module.exports = { uploadResume, listResumes, getResume };
