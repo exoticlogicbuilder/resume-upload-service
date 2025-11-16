@@ -6,6 +6,7 @@ const {
   extractObjectKey,
 } = require('../services/storage.digitalocean');
 const { resumeModel } = require('../models/resume.model');
+const { extractTextFromPDF } = require('../services/pdf-extraction.service');
 
 function generateFilename(userId) {
   // keep original extension and create a unique name
@@ -63,6 +64,7 @@ async function buildResumeResponse(record) {
     fileType: record.file_type ?? record.fileType ?? null,
     uploadDate: record.upload_date ?? record.uploadDate ?? null,
     status: record.status ?? null,
+    extractedText: record.extracted_text ?? record.extractedText ?? null,
     downloadUrl,
     fileUrl,
     createdAt: record.created_at ?? record.createdAt ?? null,
@@ -72,6 +74,7 @@ async function buildResumeResponse(record) {
   // Include legacy snake_case keys for backwards compatibility
   response.file_url = record.file_url ?? record.fileUrl ?? null;
   response.upload_date = record.upload_date ?? record.uploadDate ?? null;
+  response.extracted_text = record.extracted_text ?? record.extractedText ?? null;
   response.created_at = record.created_at ?? record.createdAt ?? null;
   response.updated_at = record.updated_at ?? record.updatedAt ?? null;
 
@@ -107,6 +110,38 @@ async function uploadResume(req, res) {
     const filename = generateFilename(userId);
     const key = `resumes/${userId}/${filename}`;
 
+    // Extract text from PDF
+    let extractedText = null;
+    let extractionError = null;
+    try {
+      const extractionResult = await extractTextFromPDF(file.buffer);
+      if (extractionResult.success) {
+        extractedText = extractionResult.text || null;
+        console.log('PDF text extraction successful:', {
+          userId,
+          filename,
+          textLength: extractedText?.length || 0,
+          numPages: extractionResult.numPages,
+        });
+      } else {
+        extractionError = extractionResult.error;
+        console.warn('PDF text extraction failed:', {
+          userId,
+          filename,
+          error: extractionResult.error,
+          errorType: extractionResult.errorType,
+        });
+      }
+    } catch (err) {
+      extractionError = err.message;
+      console.error('PDF text extraction error:', {
+        userId,
+        filename,
+        error: err.message,
+        stack: err.stack,
+      });
+    }
+
     // Upload to object storage
     const fileUrl = await uploadBuffer({ buffer: file.buffer, key, contentType: file.mimetype });
 
@@ -120,11 +155,12 @@ async function uploadResume(req, res) {
       fileType: file.mimetype,
       status,
       uploadDate,
+      extractedText,
     });
 
     const payload = await buildResumeResponse(resumeRecord);
 
-    return res.status(201).json({
+    const responseData = {
       success: true,
       message: 'Upload successful',
       data: payload,
@@ -136,7 +172,14 @@ async function uploadResume(req, res) {
       uploaded_at: payload?.uploadDate ?? resumeRecord.upload_date,
       status: payload?.status ?? resumeRecord.status,
       downloadUrl: payload?.downloadUrl ?? null,
-    });
+      extractedText: payload?.extractedText ?? null,
+    };
+
+    if (extractionError) {
+      responseData.textExtractionWarning = extractionError;
+    }
+
+    return res.status(201).json(responseData);
   } catch (err) {
     // Multer errors
     if (err instanceof multer.MulterError) {
