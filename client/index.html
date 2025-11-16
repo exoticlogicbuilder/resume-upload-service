@@ -58,9 +58,14 @@
           throw new Error(json.message || 'Upload failed');
         }
         
-        status.innerHTML = `✅ Upload successful — <strong>${json.filename}</strong><br>
-                           <small>Uploaded: ${new Date(json.uploaded_at).toLocaleString()}</small><br>
-                           <a href="${json.url}" target="_blank">📄 Open file</a>`;
+        const record = json.data || {};
+        const filename = record.filename || json.filename;
+        const uploadedAt = record.upload_date || json.uploaded_at;
+        const fileLink = record.file_url || json.fileUrl || json.url;
+
+        status.innerHTML = `✅ Upload successful — <strong>${filename || 'resume'}</strong><br>
+                           <small>Uploaded: ${uploadedAt ? new Date(uploadedAt).toLocaleString() : 'Unknown'}</small><br>
+                           ${fileLink ? `<a href="${fileLink}" target="_blank">📄 Open file</a>` : ''}`;
       } catch (err) {
         status.innerHTML = `❌ Error: ${err.message || err}`;
         status.style.color = '#d32f2f';
