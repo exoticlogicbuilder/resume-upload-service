@@ -107,3 +107,43 @@ test('ResumeModel#create throws when required fields are missing', async () => {
     },
   );
 });
+
+test('ResumeModel#findByUserId queries resumes for the specified user', async () => {
+  const expectedRows = [{ id: '1' }, { id: '2' }];
+  const recordedQueries = [];
+  const mockDb = {
+    async query(text, params) {
+      recordedQueries.push({ text, params });
+      return { rows: expectedRows };
+    },
+  };
+
+  const model = new ResumeModel(mockDb);
+  const userId = '8b7b43c1-6a3a-4d75-a965-9f4f4be52b49';
+  const result = await model.findByUserId(userId);
+
+  assert.deepStrictEqual(result, expectedRows);
+  assert.strictEqual(recordedQueries.length, 1);
+  assert.ok(recordedQueries[0].text.includes('WHERE user_id = $1'));
+  assert.ok(recordedQueries[0].text.includes('ORDER BY upload_date DESC'));
+  assert.deepStrictEqual(recordedQueries[0].params, [userId]);
+});
+
+test('ResumeModel#findById returns the matching resume or null', async () => {
+  const expectedRow = { id: 'c6c1bfd1-62bd-4d2d-bbb0-ccf0f2991b03' };
+  const mockDb = {
+    async query(text, params) {
+      if (params[0] === expectedRow.id) {
+        return { rows: [expectedRow] };
+      }
+      return { rows: [] };
+    },
+  };
+
+  const model = new ResumeModel(mockDb);
+  const found = await model.findById(expectedRow.id);
+  const missing = await model.findById('20b0b405-ff8c-4f94-8757-ec72b881b18a');
+
+  assert.deepStrictEqual(found, expectedRow);
+  assert.strictEqual(missing, null);
+});
