@@ -1,10 +1,10 @@
 # Resume Upload Service
 
-Simple microservice to accept PDF resume uploads (max 2MB), upload to DigitalOcean Spaces/S3, and store metadata in Postgres.
+Simple microservice to accept PDF resume uploads (max 2MB), upload to DigitalOcean Spaces, and store metadata in Postgres.
 
 ## Quickstart
 
-1. Copy `.env.example` to `.env` and set values.
+1. Copy `.env.example` to `.env` and set your DigitalOcean Spaces credentials.
 2. Install dependencies:
    ```
    npm install
@@ -18,10 +18,11 @@ Simple microservice to accept PDF resume uploads (max 2MB), upload to DigitalOce
 
 ## Configuration
 
-- For **DigitalOcean Spaces**: Set `DIGITALOCEAN_ENDPOINT` (e.g., `nyc3.digitaloceanspaces.com`)
-- For **AWS S3**: Leave `DIGITALOCEAN_ENDPOINT` unset
-- The service automatically detects which provider to use based on the endpoint configuration
+Required DigitalOcean Spaces environment variables:
+- `DIGITALOCEAN_REGION`: Your Spaces region (e.g., `us-east-1`)
+- `DIGITALOCEAN_BUCKET`: Your Spaces bucket name
+- `DIGITALOCEAN_ENDPOINT`: Your Spaces endpoint (e.g., `nyc3.digitaloceanspaces.com`)
 
 ## Notes
-- Uses `multer.memoryStorage()` and streams buffer to cloud storage.
-- Files are uploaded with `public-read` ACL by default. Change in `src/services/storage.s3.js` if you need private storage.
+- Uses `multer.memoryStorage()` and streams buffer to DigitalOcean Spaces.
+- Files are uploaded with `public-read` ACL by default. Change in `src/services/storage.digitalocean.js` if you need private storage.

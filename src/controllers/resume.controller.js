@@ -1,7 +1,7 @@
 // src/controllers/resume.controller.js
 const multer = require('multer');
 const { Pool } = require('pg');
-const { uploadBuffer } = require('../services/storage.s3');
+const { uploadBuffer } = require('../services/storage.digitalocean');
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 

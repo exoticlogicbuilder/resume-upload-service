@@ -5,7 +5,7 @@
 ### Core Functionality
 - **PDF-only file upload** with client and server validation
 - **File size validation** (max 2MB) with proper error messages
-- **DigitalOcean Spaces integration** with automatic provider detection
+- **DigitalOcean Spaces integration** for file storage
 - **Unique filename generation** using `userId_timestamp.pdf` format
 - **Database metadata storage** with corrected schema
 - **Comprehensive error handling** for all failure scenarios
@@ -13,11 +13,11 @@
 
 ### Technical Implementation
 - **Multer configuration** with memory storage and file filtering
-- **AWS SDK v3** for S3-compatible storage (DigitalOcean Spaces)
+- **AWS SDK v3** for DigitalOcean Spaces (S3-compatible) storage
 - **PostgreSQL integration** with proper connection handling
 - **Express.js REST API** with CORS support
 - **Static file serving** for the HTML client
-- **Environment-based configuration** for flexibility
+- **Environment-based configuration** for DigitalOcean
 
 ### Database Schema
 ```sql
@@ -40,9 +40,9 @@ Copy `.env.example` to `.env` and configure:
 ```bash
 PORT=3000
 DATABASE_URL=postgresql://user:pass@localhost:5432/resumes
-AWS_REGION=us-east-1
-S3_BUCKET=your-bucket-name
-DIGITALOCEAN_ENDPOINT=nyc3.digitaloceanspaces.com  # Optional: for DigitalOcean Spaces
+DIGITALOCEAN_REGION=us-east-1
+DIGITALOCEAN_BUCKET=your-spaces-bucket-name
+DIGITALOCEAN_ENDPOINT=nyc3.digitaloceanspaces.com
 MAX_FILE_SIZE=2097152  # 2MB in bytes
 ```
 
@@ -69,9 +69,10 @@ Visit `http://localhost:3000` and use the web interface to upload PDF files.
 
 ## 🔧 Configuration Options
 
-### Cloud Storage Providers
-- **DigitalOcean Spaces**: Set `DIGITALOCEAN_ENDPOINT` (e.g., `nyc3.digitaloceanspaces.com`)
-- **AWS S3**: Leave `DIGITALOCEAN_ENDPOINT` unset
+### DigitalOcean Spaces Configuration
+- **Region**: Set `DIGITALOCEAN_REGION` (e.g., `us-east-1`)
+- **Bucket**: Set `DIGITALOCEAN_BUCKET` to your Spaces bucket name
+- **Endpoint**: Set `DIGITALOCEAN_ENDPOINT` (e.g., `nyc3.digitaloceanspaces.com`)
 
 ### API Endpoints
 - `GET /` - Upload form interface
@@ -89,7 +90,7 @@ Visit `http://localhost:3000` and use the web interface to upload PDF files.
 - MIME type verification
 - File size enforcement via Multer
 - Database constraint validation
-- Storage service error handling
+- DigitalOcean Spaces error handling
 
 ## 🛡️ Security Features
 
@@ -115,7 +116,7 @@ Visit `http://localhost:3000` and use the web interface to upload PDF files.
 ## 🔄 Microservice Architecture
 
 The service follows microservice principles:
-- **Single Responsibility**: Handles only resume uploads
+- **Single Responsibility**: Handles only resume uploads to DigitalOcean Spaces
 - **Stateless**: Each request contains all necessary information
 - **Independent**: Can be deployed and scaled separately
 - **API-First**: RESTful interface for easy integration
@@ -130,4 +131,4 @@ The service includes comprehensive validation:
 - Client functionality verification
 - Error handling validation
 
-All components work together to provide a robust, scalable resume upload service that meets the specified requirements.
+All components work together to provide a robust, scalable resume upload service that meets the specified requirements using DigitalOcean Spaces exclusively.
