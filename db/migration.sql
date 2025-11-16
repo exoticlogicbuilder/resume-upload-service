@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS resumes (
   file_type VARCHAR(100) NOT NULL,
   upload_date TIMESTAMPTZ NOT NULL DEFAULT now(),
   status VARCHAR(50) NOT NULL DEFAULT 'uploaded',
+  extracted_text TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );

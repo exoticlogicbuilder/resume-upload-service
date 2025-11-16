@@ -14,6 +14,7 @@ test('ResumeModel#create stores metadata and returns the persisted row', async (
     file_type: 'application/pdf',
     upload_date: uploadDate,
     status: 'processed',
+    extracted_text: null,
     created_at: uploadDate,
     updated_at: uploadDate,
   };
@@ -48,6 +49,7 @@ test('ResumeModel#create stores metadata and returns the persisted row', async (
     expectedRow.file_type,
     uploadDate,
     expectedRow.status,
+    null,
   ]);
   assert.deepStrictEqual(result, expectedRow);
 });
@@ -71,6 +73,7 @@ test('ResumeModel#create applies default status when none is supplied', async ()
   });
 
   assert.strictEqual(capturedParams[6], 'uploaded');
+  assert.strictEqual(capturedParams[7], null);
 });
 
 test('ResumeModel#create validates positive file size', async () => {

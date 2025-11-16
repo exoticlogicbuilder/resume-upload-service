@@ -32,6 +32,7 @@ The service persists uploads to the `resumes` table with the following columns:
 - `file_type`
 - `upload_date`
 - `status`
+- `extracted_text` (TEXT, extracted content from PDF)
 - `created_at`
 - `updated_at`
  
@@ -47,11 +48,13 @@ Node.js microservice for uploading PDF resumes (max 2MB) to DigitalOcean Spaces 
 ## Features
 
 - Upload PDF resumes to DigitalOcean Spaces (S3-compatible storage)
-- Store resume metadata in PostgreSQL
+- Extract text content from uploaded PDFs for analysis
+- Store resume metadata and extracted text in PostgreSQL
 - List all resumes for a user
-- Retrieve specific resume details
+- Retrieve specific resume details with extracted text
 - Generate secure signed URLs for downloading (1-hour expiration)
 - React-based dashboard for managing resumes
+- Graceful handling of extraction errors (corrupted PDFs, scanned images)
 
 ## Quickstart
 
@@ -80,7 +83,7 @@ Upload a PDF resume (max 2MB).
   - `file`: PDF file
   - `userId`: User UUID
 
-**Response:** Resume metadata with download URL
+**Response:** Resume metadata with download URL and extracted text content
 
 ### GET /api/resumes
 List all resumes for a user.
@@ -132,3 +135,6 @@ npm test
 - Files are uploaded with `private` ACL for secure access control
 - Signed URLs are generated on-demand for downloads using AWS SDK v3
 - Frontend uses React (loaded via CDN) for dashboard functionality
+- PDF text extraction is performed using `pdf-parse` library during upload
+- Text extraction errors (corrupted PDFs, scanned images, encrypted files) are logged but don't block the upload
+- Extracted text is cleaned (extra whitespace removed) before storage

@@ -17,6 +17,7 @@ class ResumeModel {
     fileType,
     status = 'uploaded',
     uploadDate = new Date(),
+    extractedText = null,
   }) {
     const normalizedUserId = typeof userId === 'string' ? userId.trim() : userId ? String(userId) : '';
     if (!normalizedUserId) throw new Error('userId is required');
@@ -42,6 +43,10 @@ class ResumeModel {
 
     const normalizedStatus = typeof status === 'string' && status.trim() ? status.trim() : 'uploaded';
 
+    const normalizedExtractedText = extractedText !== null && extractedText !== undefined
+      ? (typeof extractedText === 'string' ? extractedText : String(extractedText))
+      : null;
+
     const insertQuery = `
       INSERT INTO resumes (
         user_id,
@@ -50,9 +55,10 @@ class ResumeModel {
         file_size,
         file_type,
         upload_date,
-        status
+        status,
+        extracted_text
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING
         id,
         user_id,
@@ -62,6 +68,7 @@ class ResumeModel {
         file_type,
         upload_date,
         status,
+        extracted_text,
         created_at,
         updated_at;
     `;
@@ -74,6 +81,7 @@ class ResumeModel {
       normalizedFileType,
       uploadDateValue,
       normalizedStatus,
+      normalizedExtractedText,
     ];
     const { rows } = await this.db.query(insertQuery, values);
 
@@ -100,6 +108,7 @@ class ResumeModel {
         file_type,
         upload_date,
         status,
+        extracted_text,
         created_at,
         updated_at
       FROM resumes
@@ -127,6 +136,7 @@ class ResumeModel {
         file_type,
         upload_date,
         status,
+        extracted_text,
         created_at,
         updated_at
       FROM resumes
