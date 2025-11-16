@@ -8,7 +8,8 @@ const storage = multer.memoryStorage();
 const fileFilter = (req, file, cb) => {
   // Accept only PDF MIME type
   if (file.mimetype !== 'application/pdf') {
-    const err = new multer.MulterError('LIMIT_UNEXPECTED_FILE', 'Only PDF files are allowed');
+    const err = new multer.MulterError('LIMIT_UNEXPECTED_FILE');
+    err.message = 'Invalid file type. Only PDF files are allowed.';
     return cb(err, false);
   }
   cb(null, true);
