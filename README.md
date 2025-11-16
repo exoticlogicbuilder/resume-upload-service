@@ -16,6 +16,25 @@ Simple microservice to accept PDF resume uploads (max 2MB), upload to S3, and st
    ```
 5. Open `client/index.html` in a browser (or serve it) and test uploading a PDF to `http://localhost:3000/api/resumes`.
 
+## Testing
+Run the unit tests with:
+```
+npm test
+```
+
+## Database Schema
+The service persists uploads to the `resumes` table with the following columns:
+- `id` (UUID primary key)
+- `user_id` (UUID foreign key to the `users` table)
+- `filename`
+- `file_url`
+- `file_size`
+- `file_type`
+- `upload_date`
+- `status`
+- `created_at`
+- `updated_at`
+
 ## Notes
 - Uses `multer.memoryStorage()` and streams buffer to S3.
 - Files are uploaded with `public-read` ACL by default. Change in `src/services/storage.s3.js` if you need private storage.
