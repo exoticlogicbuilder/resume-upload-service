@@ -4,7 +4,7 @@ const express = require('express');
 const path = require('path');
 const cors = require('cors');
 const upload = require('./config/multer');
-const { uploadResume } = require('./controllers/resume.controller');
+const { uploadResume, listResumes, getResume } = require('./controllers/resume.controller');
 
 const app = express();
 
@@ -25,7 +25,9 @@ app.get('/', (req, res) => {
 // Health check
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
-// Upload route
+// Resume routes
+app.get('/api/resumes', listResumes);
+app.get('/api/resumes/:id', getResume);
 app.post('/api/resumes', upload.single('file'), uploadResume);
 
 // Basic error handler

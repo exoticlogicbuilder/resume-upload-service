@@ -83,6 +83,59 @@ class ResumeModel {
 
     return rows[0];
   }
+
+  async findByUserId(userId) {
+    if (!userId) throw new Error('userId is required');
+
+    const normalizedUserId = typeof userId === 'string' ? userId.trim() : String(userId);
+    if (!normalizedUserId) throw new Error('userId is required');
+
+    const query = `
+      SELECT
+        id,
+        user_id,
+        filename,
+        file_url,
+        file_size,
+        file_type,
+        upload_date,
+        status,
+        created_at,
+        updated_at
+      FROM resumes
+      WHERE user_id = $1
+      ORDER BY upload_date DESC;
+    `;
+
+    const { rows } = await this.db.query(query, [normalizedUserId]);
+    return rows;
+  }
+
+  async findById(id) {
+    if (!id) throw new Error('id is required');
+
+    const normalizedId = typeof id === 'string' ? id.trim() : String(id);
+    if (!normalizedId) throw new Error('id is required');
+
+    const query = `
+      SELECT
+        id,
+        user_id,
+        filename,
+        file_url,
+        file_size,
+        file_type,
+        upload_date,
+        status,
+        created_at,
+        updated_at
+      FROM resumes
+      WHERE id = $1;
+    `;
+
+    const { rows } = await this.db.query(query, [normalizedId]);
+    return rows[0] || null;
+  }
 }
 
 const resumeModel = new ResumeModel(pool);
