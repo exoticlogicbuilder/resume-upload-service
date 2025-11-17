@@ -11,9 +11,12 @@ CREATE TABLE IF NOT EXISTS resumes (
   file_type VARCHAR(100) NOT NULL,
   upload_date TIMESTAMPTZ NOT NULL DEFAULT now(),
   status VARCHAR(50) NOT NULL DEFAULT 'uploaded',
+  extracted_text TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+ALTER TABLE resumes ADD COLUMN IF NOT EXISTS extracted_text TEXT;
 
 CREATE INDEX IF NOT EXISTS idx_resumes_user_id ON resumes(user_id);
 

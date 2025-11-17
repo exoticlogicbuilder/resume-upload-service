@@ -1,4 +1,20 @@
-const { pool } = require('../config/database');
+// src/models/resume.model.js
+const REQUIRED_STRING_FIELDS = ['userId', 'filename', 'fileUrl', 'fileType'];
+
+function ensurePositiveNumber(value, fieldName) {
+  if (typeof value !== 'number' || Number.isNaN(value) || value <= 0) {
+    throw new Error(`${fieldName} must be a positive number`);
+  }
+}
+
+function ensureRequiredStrings(payload) {
+  for (const field of REQUIRED_STRING_FIELDS) {
+    const value = payload[field];
+    if (!value || typeof value !== 'string') {
+      throw new Error(`${field} is required`);
+    }
+  }
+}
 
 class ResumeModel {
   constructor(db) {
@@ -9,52 +25,31 @@ class ResumeModel {
     this.db = db;
   }
 
-  async create({
-    userId,
-    filename,
-    fileUrl,
-    fileSize,
-    fileType,
-    status = 'uploaded',
-    uploadDate = new Date(),
-  }) {
-    const normalizedUserId = typeof userId === 'string' ? userId.trim() : userId ? String(userId) : '';
-    if (!normalizedUserId) throw new Error('userId is required');
-
-    const normalizedFilename = typeof filename === 'string' ? filename.trim() : filename;
-    if (!normalizedFilename) throw new Error('filename is required');
-
-    const normalizedFileUrl = typeof fileUrl === 'string' ? fileUrl.trim() : fileUrl;
-    if (!normalizedFileUrl) throw new Error('fileUrl is required');
-
-    const numericFileSize = Number(fileSize);
-    if (!Number.isFinite(numericFileSize) || numericFileSize <= 0) {
-      throw new Error('fileSize must be a positive number');
+  #validateCreatePayload(payload) {
+    if (!payload || typeof payload !== 'object') {
+      throw new Error('Payload is required');
     }
 
-    const normalizedFileType = typeof fileType === 'string' ? fileType.trim() : fileType;
-    if (!normalizedFileType) throw new Error('fileType is required');
+    ensureRequiredStrings(payload);
+    ensurePositiveNumber(payload.fileSize, 'fileSize');
+  }
 
-    const uploadDateValue = uploadDate instanceof Date ? uploadDate : new Date(uploadDate);
-    if (!(uploadDateValue instanceof Date) || Number.isNaN(uploadDateValue.getTime())) {
-      throw new Error('uploadDate must be a valid date');
-    }
+  async create(payload) {
+    this.#validateCreatePayload(payload);
 
-    const normalizedStatus = typeof status === 'string' && status.trim() ? status.trim() : 'uploaded';
+    const {
+      userId,
+      filename,
+      fileUrl,
+      fileSize,
+      fileType,
+      status = 'uploaded',
+      uploadDate = new Date(),
+      extractedText = null,
+    } = payload;
 
-    const insertQuery = `
-      INSERT INTO resumes (
-        user_id,
-        filename,
-        file_url,
-        file_size,
-        file_type,
-        upload_date,
-        status
-      )
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
-      RETURNING
-        id,
+    const text = `
+      INSERT INTO resumes(
         user_id,
         filename,
         file_url,
@@ -62,82 +57,77 @@ class ResumeModel {
         file_type,
         upload_date,
         status,
-        created_at,
-        updated_at;
+        extracted_text
+      )
+      VALUES($1,$2,$3,$4,$5,$6,$7,$8)
+      RETURNING *
     `;
 
     const values = [
-      normalizedUserId,
-      normalizedFilename,
-      normalizedFileUrl,
-      numericFileSize,
-      normalizedFileType,
-      uploadDateValue,
-      normalizedStatus,
+      userId,
+      filename,
+      fileUrl,
+      fileSize,
+      fileType,
+      uploadDate,
+      status,
+      extractedText,
     ];
-    const { rows } = await this.db.query(insertQuery, values);
 
-    if (!rows || !rows[0]) {
-      throw new Error('Failed to persist resume metadata');
-    }
-
+    const { rows } = await this.db.query(text, values);
     return rows[0];
   }
 
   async findByUserId(userId) {
-    if (!userId) throw new Error('userId is required');
+    if (!userId) {
+      throw new Error('userId is required');
+    }
 
-    const normalizedUserId = typeof userId === 'string' ? userId.trim() : String(userId);
-    if (!normalizedUserId) throw new Error('userId is required');
-
-    const query = `
-      SELECT
-        id,
-        user_id,
-        filename,
-        file_url,
-        file_size,
-        file_type,
-        upload_date,
-        status,
-        created_at,
-        updated_at
+    const text = `
+      SELECT *
       FROM resumes
       WHERE user_id = $1
-      ORDER BY upload_date DESC;
+      ORDER BY upload_date DESC
     `;
 
-    const { rows } = await this.db.query(query, [normalizedUserId]);
+    const { rows } = await this.db.query(text, [userId]);
     return rows;
   }
 
   async findById(id) {
-    if (!id) throw new Error('id is required');
+    if (!id) {
+      throw new Error('id is required');
+    }
 
-    const normalizedId = typeof id === 'string' ? id.trim() : String(id);
-    if (!normalizedId) throw new Error('id is required');
-
-    const query = `
-      SELECT
-        id,
-        user_id,
-        filename,
-        file_url,
-        file_size,
-        file_type,
-        upload_date,
-        status,
-        created_at,
-        updated_at
+    const text = `
+      SELECT *
       FROM resumes
-      WHERE id = $1;
+      WHERE id = $1
+      LIMIT 1
     `;
 
-    const { rows } = await this.db.query(query, [normalizedId]);
+    const { rows } = await this.db.query(text, [id]);
     return rows[0] || null;
   }
 }
 
-const resumeModel = new ResumeModel(pool);
+const isTestEnvironment =
+  process.env.NODE_ENV === 'test'
+  || process.env.npm_lifecycle_event === 'test'
+  || process.env.TEST === 'true';
 
-module.exports = { ResumeModel, resumeModel };
+let resumeModel = null;
+
+if (process.env.DATABASE_URL) {
+  // Lazily require to avoid initializing a pool during tests
+  // when DATABASE_URL is not available.
+  const { pool } = require('../config/database');
+  resumeModel = new ResumeModel(pool);
+} else if (!isTestEnvironment) {
+  console.warn('DATABASE_URL is not set. resumeModel will not be initialized.');
+}
+
+module.exports = {
+  ResumeModel,
+  resumeModel,
+};
