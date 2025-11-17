@@ -15,7 +15,11 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Serve static files from client directory
-app.use(express.static(path.join(__dirname, '../client')));
+app.use(express.static(path.join(__dirname, '../client'), { index: 'index.html' }));
+ 
+ 
+// Default route to serve the upload form
+// Default route to serve the upload form (fallback)
 
 // Default route to serve the upload form
 app.get('/', (req, res) => {
