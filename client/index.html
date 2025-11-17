@@ -4,6 +4,9 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Resume Dashboard</title>
+  <script>
+    console.log('Page loaded, starting to load resources...');
+  </script>
   <style>
     :root {
       color-scheme: light dark;
@@ -22,6 +25,8 @@
       display: flex;
       justify-content: center;
       background: #f7f9fb;
+      min-height: 100vh;
+      align-items: flex-start;
     }
 
     .app-container {
@@ -192,13 +197,22 @@
   </style>
 </head>
 <body>
-  <div id="root"></div>
+  <div id="root">
+    <div style="padding: 32px 20px; display: flex; justify-content: center;">
+      <div style="width: 100%; max-width: 760px; background: #ffffff; border-radius: 16px; box-shadow: 0 16px 32px rgba(15, 23, 42, 0.12); padding: 28px 32px 40px;">
+        <h1 style="font-weight: 600; margin-top: 0; margin-bottom: 24px; font-size: 1.8rem;">Loading Resume Dashboard...</h1>
+        <p>If this message persists, please check your browser console for errors.</p>
+      </div>
+    </div>
+  </div>
 
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/babel-standalone@7/babel.min.js"></script>
 
   <script type="text/babel">
+    console.log('React and Babel loaded successfully');
+    console.log('React version:', React.version);
     const { useState, useEffect, useMemo, useRef } = React;
 
     const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
@@ -475,8 +489,53 @@
       );
     }
 
-    const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(<App />);
+    class ErrorBoundary extends React.Component {
+      constructor(props) {
+        super(props);
+        this.state = { hasError: false, error: null };
+      }
+
+      static getDerivedStateFromError(error) {
+        return { hasError: true, error };
+      }
+
+      componentDidCatch(error, errorInfo) {
+        console.error('React Error:', error, errorInfo);
+      }
+
+      render() {
+        if (this.state.hasError) {
+          return (
+            <div style={{ padding: '20px', color: 'red' }}>
+              <h2>Error Loading Application</h2>
+              <p>{this.state.error?.message}</p>
+            </div>
+          );
+        }
+        return this.props.children;
+      }
+    }
+
+    console.log('About to create React root...');
+    try {
+      const rootElement = document.getElementById('root');
+      console.log('Root element found:', rootElement);
+      const root = ReactDOM.createRoot(rootElement);
+      console.log('React root created, rendering app...');
+      root.render(
+        <ErrorBoundary>
+          <App />
+        </ErrorBoundary>
+      );
+      console.log('App rendered successfully');
+    } catch (error) {
+      console.error('Failed to render app:', error);
+      console.error('Stack:', error.stack);
+      const rootEl = document.getElementById('root');
+      if (rootEl) {
+        rootEl.innerHTML = '<div style="padding: 20px; color: red;"><h2>Error: Failed to load application</h2><p>' + error.message + '</p><p><small>' + error.stack + '</small></p></div>';
+      }
+    }
   </script>
 </body>
 </html>
